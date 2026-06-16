@@ -1137,7 +1137,9 @@ function matchAll(members, teachers) {
 
     teachers.forEach(teacher => {
       // CN1팀 규칙: 권다원만 매주(weekly) 회원 수락, 나머지 교사는 격주(N) 회원만
-      if (!member.isBiweekly && !TEACHERS_ACCEPT_WEEKLY.has(teacher.teacherName)) return;
+      // 단, 캐츠홈 단과 상품은 모든 교사 대상
+      const isCatsHome = (member.product || '').includes('캐츠홈');
+      if (!member.isBiweekly && !isCatsHome && !TEACHERS_ACCEPT_WEEKLY.has(teacher.teacherName)) return;
 
       // 레벨(학년) 매칭: 레벨 정보가 없으면 모든 교사 표시
       let levelOk = true;
