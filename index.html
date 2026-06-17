@@ -1348,7 +1348,7 @@ function populateLevelFilter() {
   const sel = document.getElementById('filterLevel');
   sel.innerHTML = '<option value="">전체</option>';
   [...levels].sort().forEach(l => {
-    sel.innerHTML += `<option value="${l}">Lv ${l}</option>`;
+    sel.innerHTML += `<option value="${l}">${l}학년</option>`;
   });
 }
 
@@ -1420,7 +1420,7 @@ function renderMemberTable(lvFilter='', dayFilter='', searchFilter='') {
     const broHtml = getBroHtml(m);
 
     const levelBadge = m.level
-      ? `<span class="badge badge-yellow">Lv ${m.level}</span>`
+      ? `<span class="badge badge-yellow">${m.level}학년</span>`
       : '<span class="badge badge-gray">미확인</span>';
     // genN 모드: 격주(N)/매주 코칭주기 표시
     const cycleBadge = currentMode === 'genN'
@@ -1478,7 +1478,7 @@ function renderEarlyMembers() {
     html += `<tr>
       <td>${i+1}</td><td><code>${m.cas}</code></td>
       <td>${m.grade||'-'}</td>
-      <td>${m.level?`<span class='badge badge-yellow'>Lv${m.level}</span>`:'-'}</td>
+      <td>${m.level?`<span class='badge badge-yellow'>${m.level}학년</span>`:'-'}</td>
       <td style="white-space:nowrap">${firstWeekCell(m)}</td>
       <td style='max-width:160px'>${m.possibleScheduleRaw||'-'}</td>
       <td>${slots||'<span class=\'badge badge-red\'>없음</span>'}</td>
@@ -1504,8 +1504,8 @@ function renderTeacherPanels() {
     );
 
     const levelTags = teacher.levels.length > 0
-      ? teacher.levels.map(l => `<span class="badge badge-yellow">Lv${l}</span>`).join(' ')
-      : '<span class="badge badge-gray">레벨 미확인</span>';
+      ? teacher.levels.map(l => `<span class="badge badge-yellow">${l}학년</span>`).join(' ')
+      : '<span class="badge badge-gray">학년 미확인</span>';
 
     // 가능 시간대 표 (8명 미만 슬롯만, 0명=전원가능 포함)
     const availSlots = teacher.availableSlots.filter(s => s.available);
@@ -1585,7 +1585,7 @@ function renderTeacherPanels() {
                   return `<tr>
                     <td>${i+1}</td>
                     <td><code>${m.cas}</code></td>
-                    <td><div style="width:58px">${m.level ? `<span class="badge badge-yellow">Lv${m.level}</span>` : '-'}</div></td>
+                    <td><div style="width:58px">${m.level ? `<span class="badge badge-yellow">${m.level}학년</span>` : '-'}</div></td>
                     <td style="white-space:nowrap;font-size:12px">${firstWeekCell(m)}</td>
                     ${cycleCell}
                     <td style="max-width:150px">${m.possibleScheduleRaw || '-'}</td>
@@ -1975,7 +1975,7 @@ function downloadExcel() {
   // 회원 전체 시트
   const isGenN = currentMode === 'genN';
   const memberHeader = [
-    '순번','CAS회원번호','학년','레벨', ...(isGenN ? ['코칭주기'] : []), '첫수업주간',
+    '순번','CAS회원번호','학년','배정학년', ...(isGenN ? ['코칭주기'] : []), '첫수업주간',
     '가능요일','가능 일정(수기_AJ열)','불가능시간(설문 답변)',
     '특이사항','형제여부',
     '형제CAS','형제이름','형제관리교사','형제영어교사',
@@ -1995,7 +1995,7 @@ function downloadExcel() {
     memberSlotsInfo.push(slots);
     const fmtSlot = sl => sl ? `${sl.day} ${sl.time}${sl.week ? ` (${sl.week})` : ''}` : '';
     return [
-      idx+1, m.cas, m.grade, m.level,
+      idx+1, m.cas, m.grade, m.level ? m.level + '학년' : '',
       ...(isGenN ? [m.isBiweekly ? '격주(N)' : '매주'] : []),
       m.firstWeek ? fmtDate(m.firstWeek) : '',
       m.possibleDays.join(','), m.possibleScheduleRaw, m.unavailDisplay,
@@ -2029,13 +2029,13 @@ function downloadExcel() {
   // 배정불가 회원 시트 (매칭 가능한 교사/시간이 전혀 없는 회원 - 임의배정 여부와 무관하게 항상 표시)
   const unassignableMembers = matchResults.filter(isUnassignable);
   const ulHeader = [
-    '순번','CAS회원번호','학년','레벨', ...(isGenN ? ['코칭주기'] : []), '수업주차',
+    '순번','CAS회원번호','학년','배정학년', ...(isGenN ? ['코칭주기'] : []), '수업주차',
     '가능 일정(수기_AJ열)','불가능시간(설문 답변)','특이사항','형제정보'
   ];
   const ulRows = unassignableMembers.map((r, i) => {
     const m = r.member;
     return [
-      i+1, m.cas, m.grade, m.level,
+      i+1, m.cas, m.grade, m.level ? m.level + '학년' : '',
       ...(isGenN ? [m.isBiweekly ? '격주(N)' : '매주'] : []),
       firstWeekCell(m), m.possibleScheduleRaw, m.unavailDisplay, m.note, getBroStr(m)
     ];
@@ -2048,7 +2048,7 @@ function downloadExcel() {
   // 임의배정 결과 / 미배정 회원 시트 (임의 배정을 실행한 경우)
   if (lastRandomAssign) {
     const raHeader = [
-      '교사','순번','CAS회원번호','학년','레벨','수업주차', ...(isGenN ? ['코칭주기/배정주차'] : []),
+      '교사','순번','CAS회원번호','학년','배정학년','수업주차', ...(isGenN ? ['코칭주기/배정주차'] : []),
       '가능 일정(수기_AJ열)','불가능시간(설문 답변)','교사 가능시간','추천 시간(그룹)','마감임박','빠른배정','그룹배정',
       '특이사항','형제정보'
     ];
@@ -2087,7 +2087,7 @@ function downloadExcel() {
         raUrgent.push(isUrgent);
         raGroup.push(isGroup);
         raRows.push([
-          teacher.teacherName, i+1, m.cas, gradeCell(m), m.level, firstWeekCell(m),
+          teacher.teacherName, i+1, m.cas, gradeCell(m), m.level ? m.level + '학년' : '', firstWeekCell(m),
           ...(isGenN ? [m.isBiweekly ? `격주(N)${week ? ` / ${week}` : ''}` : '매주'] : []),
           m.possibleScheduleRaw, m.unavailDisplay, slotStr, recStr, isExactFit ? 'O' : '', isUrgent ? 'O' : '', isGroup ? 'O' : '',
           m.note, getBroStr(m)
@@ -2136,12 +2136,12 @@ function downloadExcel() {
       return '기타 (인원 경쟁으로 미배정)';
     };
     const unHeader = [
-      '순번','CAS회원번호','학년','레벨','수업주차', ...(isGenN ? ['코칭주기'] : []),
+      '순번','CAS회원번호','학년','배정학년','수업주차', ...(isGenN ? ['코칭주기'] : []),
       '미배정 사유','가능 일정(수기_AJ열)','불가능시간(설문 답변)','특이사항','형제정보'
     ];
     const unRows = lastRandomAssign.unassigned.map((r, i) => {
       const m = r.member;
-      return [i+1, m.cas, gradeCell(m), m.level, firstWeekCell(m), ...(isGenN ? [m.isBiweekly ? '격주(N)' : '매주'] : []), getUnassignedReason(r), m.possibleScheduleRaw, m.unavailDisplay, m.note, getBroStr(m)];
+      return [i+1, m.cas, gradeCell(m), m.level ? m.level + '학년' : '', firstWeekCell(m), ...(isGenN ? [m.isBiweekly ? '격주(N)' : '매주'] : []), getUnassignedReason(r), m.possibleScheduleRaw, m.unavailDisplay, m.note, getBroStr(m)];
     });
     if (unRows.length === 0) unRows.push(['미배정 회원 없음']);
     const wsUnassigned = XLSX.utils.aoa_to_sheet([unHeader, ...unRows]);
@@ -2157,7 +2157,7 @@ function downloadExcel() {
     );
 
     const header = [
-      'CAS회원번호','학년','레벨','수업주차','상품','단과여부', ...(isGenN ? ['코칭주기/배정주차'] : []),
+      'CAS회원번호','학년','배정학년','수업주차','상품','단과여부', ...(isGenN ? ['코칭주기/배정주차'] : []),
       '가능 시간 조합(현재인원)',
       '탭명','현재탭가능시간대',
       '가능 일정(수기_AJ열)','불가능시간(설문 답변)','특이사항','형제정보'
@@ -2183,7 +2183,7 @@ function downloadExcel() {
       exactFitFlags.push(avSlots.some(isExactFitSlot));
 
       rows.push([
-        m.cas, m.grade, m.level, firstWeekCell(m), productCell(m), singleCourseCell(m),
+        m.cas, m.grade, m.level ? m.level + '학년' : '', firstWeekCell(m), productCell(m), singleCourseCell(m),
         ...(isGenN ? [(() => {
           const week = avSlots[0] ? avSlots[0].assignedWeek : null;
           return m.isBiweekly ? `격주(N)${week ? ` / ${week}` : ''}` : '매주';
