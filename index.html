@@ -910,8 +910,18 @@ function parseAssignmentFile(wb) {
     const productVal = safeStr(row[COL.PRODUCT]);
     if (!productMatch(productVal)) continue;
 
-    // genN 모드: 구독상품명에 "(N)"이 포함되면 격주코칭 회원
-    const isBiweekly = currentMode === 'genN' && /\(N\)/.test(productVal);
+    // 인플루언서 회원 제외
+    if (productVal.includes('인플루언서')) continue;
+
+    // genN 모드: 격주 판단
+    // - (N) 포함: 캐츠잉글리시+캐츠홈(N) 등
+    // - 캐츠홈 초등: 격주 상품 (N 표기 없음)
+    // - 캐츠홈N: N이 상품명에 직접 포함된 경우
+    const isBiweekly = currentMode === 'genN' && (
+      /\(N\)/.test(productVal) ||
+      productVal.includes('캐츠홈 초등') ||
+      productVal.includes('캐츠홈N')
+    );
 
     members.push({
       rowIdx: i,
@@ -1136,10 +1146,9 @@ function matchAll(members, teachers) {
     const matches = [];
 
     teachers.forEach(teacher => {
-      // CN1팀 규칙: 권다원만 매주(weekly) 회원 수락, 나머지 교사는 격주(N) 회원만
-      // 단, 캐츠홈 단과 상품은 모든 교사 대상
-      const isCatsHome = (member.product || '').includes('캐츠홈');
-      if (!member.isBiweekly && !isCatsHome && !TEACHERS_ACCEPT_WEEKLY.has(teacher.teacherName)) return;
+      // CN1팀 규칙: 권다원만 매주(weekly) 회원 수락, 나머지 교사는 격주 회원만
+      // 격주 기준: (N) 포함 OR 캐츠홈 초등 OR 캐츠홈N → isBiweekly=true로 이미 처리됨
+      if (!member.isBiweekly && !TEACHERS_ACCEPT_WEEKLY.has(teacher.teacherName)) return;
 
       // 레벨(학년) 매칭: 레벨 정보가 없으면 모든 교사 표시
       let levelOk = true;
@@ -1256,6 +1265,16 @@ async function processFiles() {
     await sleep(50);
     teachersData = parseSchedulerFile(wb2);
     setProgress(70);
+
+    // 스케줄러에 이미 등록된 회원 CAS 수집 → 배정 대상에서 제외
+    const schedulerCasSet = new Set();
+    teachersData.forEach(t => t.membersInTab.forEach(m => schedulerCasSet.add(m.cas)));
+    const beforeCount = membersData.length;
+    membersData = membersData.filter(m => !schedulerCasSet.has(m.cas));
+    const excludedCount = beforeCount - membersData.length;
+    if (excludedCount > 0) {
+      console.log(`[스케줄러 중복 제외] ${excludedCount}명 제외 (이미 배정 완료)`);
+    }
 
     document.getElementById('processStatus').textContent = '⏳ 매칭 중...';
     await sleep(50);
