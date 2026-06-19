@@ -842,6 +842,8 @@ function parseAssignmentFile(wb) {
     } else {
       // 학년: H열(index 7) → "초등 3" → "3"
       const gradeRaw = safeStr(row[COL.GRADE]);
+      // 예비초 학년 회원은 배정 대상에서 제외
+      if (gradeRaw.includes('예비초')) continue;
       const gm = gradeRaw.match(/(\d+)/);
       level = gm ? gm[1] : gradeRaw; // 학년을 level 필드에 저장
     }
@@ -1394,7 +1396,7 @@ function renderMemberTable(lvFilter='', dayFilter='', searchFilter='') {
       slotsHtml = '<span class="badge badge-yellow">화상코칭거부</span> '
         + (teachers.length > 0
           ? teachers.map(t => `<span class='badge badge-blue'>${t}</span>`).join(' ')
-          : '<span class="badge badge-red">레벨 매칭 없음</span>');
+          : '<span class="badge badge-red">학년 매칭 없음</span>');
     } else if (matches.length === 0) {
       slotsHtml = '<span class="badge badge-red">매칭 없음</span>';
     } else {
@@ -1469,7 +1471,7 @@ function renderEarlyMembers() {
   el.style.display = 'block';
   let html = `<div class='section-title'>⏰ 이른 시간대(3~5시) 전용 회원 (${earlyMembers.length}명)</div>`;
   html += '<div style="overflow-x:auto"><table style="font-size:12px"><thead><tr>'
-    + '<th>#</th><th>CAS</th><th>학년</th><th>레벨</th><th>수업주차</th><th>가능 일정(수기_AJ열)</th><th>매칭 교사</th><th>특이사항</th>'
+    + '<th>#</th><th>CAS</th><th>학년</th><th>배정학년</th><th>수업주차</th><th>가능 일정(수기_AJ열)</th><th>매칭 교사</th><th>특이사항</th>'
     + '</tr></thead><tbody>';
   earlyMembers.forEach((r, i) => {
     const m = r.member;
@@ -1568,7 +1570,7 @@ function renderTeacherPanels() {
         <summary>배정 가능 회원 (${assignable.length}명)</summary>
         <div>
           <table style="font-size:12px">
-            <thead><tr><th>#</th><th>CAS</th><th>레벨</th><th>수업주차</th>${currentMode === 'genN' ? '<th>코칭주기</th>' : ''}<th>가능 일정(수기_AJ열)</th><th>교사 가능시간</th><th>불가능시간(설문 답변)</th><th>특이사항</th><th>형제</th></tr></thead>
+            <thead><tr><th>#</th><th>CAS</th><th>배정학년</th><th>수업주차</th>${currentMode === 'genN' ? '<th>코칭주기</th>' : ''}<th>가능 일정(수기_AJ열)</th><th>교사 가능시간</th><th>불가능시간(설문 답변)</th><th>특이사항</th><th>형제</th></tr></thead>
             <tbody>
               ${assignable.length === 0 ? `<tr><td colspan="${currentMode === 'genN' ? 10 : 9}" style="text-align:center;color:var(--text-muted)">해당 없음</td></tr>` :
                 assignable.map((r, i) => {
@@ -1829,7 +1831,7 @@ function _doRandomAssign() {
       groupedByRec.get(key).members.push(r);
     });
     groupedByRec.forEach(({ slot, members, lv }) => {
-      recSummaryHtml += `<div style="font-size:12px;margin:2px 0 2px 4px">📌 추천 시간: 레벨${lv} ${members.length}명 → `
+      recSummaryHtml += `<div style="font-size:12px;margin:2px 0 2px 4px">📌 추천 시간: ${lv}학년 ${members.length}명 → `
         + `<b>${formatSlot(slot)}</b> (현재 ${slot.currentCount}/8, 배정 후 ${slot.currentCount + members.length}/8) `
         + `— 👥 한 시간대로 모아서 배정`
         + `</div>`;
@@ -1859,7 +1861,7 @@ function _doRandomAssign() {
         const groupSize = Math.min(pool.length, capacity);
         const chosen = pool.slice(0, groupSize);
         chosen.forEach(r => groupRecMap.set(r.member.cas, rec));
-        recSummaryHtml += `<div style="font-size:12px;margin:2px 0 2px 4px">📌 추천 시간: 레벨${lv} ${chosen.length}명 → `
+        recSummaryHtml += `<div style="font-size:12px;margin:2px 0 2px 4px">📌 추천 시간: ${lv}학년 ${chosen.length}명 → `
           + `<b>${formatSlot(rec)}</b> (현재 ${rec.currentCount}/8, 배정 후 ${rec.currentCount + addedSoFar + chosen.length}/8) `
           + `— 한 시간대로 모아서 배정 가능`
           + `</div>`;
@@ -1872,7 +1874,7 @@ function _doRandomAssign() {
       + `<div class='random-teacher-name' style='font-size:13px;margin-bottom:4px'>🎲 임의 배정 결과 — ${picked.length}명</div>`
       + recSummaryHtml
       + '<div style="overflow-x:auto"><table style="font-size:12px;width:auto">'
-      + `<thead><tr><th>#</th><th>CAS</th><th>레벨</th><th>수업주차</th>${currentMode === 'genN' ? '<th>코칭주기/배정주차</th>' : ''}<th>가능 일정(수기_AJ열)</th><th>불가능시간(설문 답변)</th><th>교사 가능시간</th><th>추천 시간</th><th>특이사항</th><th>형제</th></tr></thead><tbody>`;
+      + `<thead><tr><th>#</th><th>CAS</th><th>배정학년</th><th>수업주차</th>${currentMode === 'genN' ? '<th>코칭주기/배정주차</th>' : ''}<th>가능 일정(수기_AJ열)</th><th>불가능시간(설문 답변)</th><th>교사 가능시간</th><th>추천 시간</th><th>특이사항</th><th>형제</th></tr></thead><tbody>`;
     picked.forEach((r, i) => {
       const m = r.member;
       const mt = r.matches.find(mt2 => mt2.teacher.tabName === teacher.tabName && mt2.hasSlots);
@@ -1892,7 +1894,7 @@ function _doRandomAssign() {
       const recStr = rec ? formatSlot(rec) : '-';
       const recHighlight = (r._groupRec || groupRecMap.get(m.cas)) ? ';font-weight:600;color:var(--orange)' : '';
       tHtml += `<tr><td>${i+1}</td><td><code>${m.cas}</code>${exactFitTag}${urgentTag}${groupTag}</td>`
-        + `<td style="width:70px">${m.level||'-'}</td>`
+        + `<td style="width:70px">${m.level ? m.level+'학년' : '-'}</td>`
         + `<td style="white-space:nowrap;font-size:12px">${firstWeekCell(m)}</td>`
         + cycleCell
         + `<td style="max-width:150px;font-size:12px">${m.possibleScheduleRaw||'-'}</td>`
@@ -1913,11 +1915,11 @@ function _doRandomAssign() {
     if (unassigned.length > 0) {
       let uHtml = `<div class='section-title'>⚠️ 미배정 회원 (${unassigned.length}명)</div>`;
       uHtml += '<div style="overflow-x:auto"><table style="font-size:12px;width:auto">'
-        + '<thead><tr><th>#</th><th>CAS</th><th>레벨</th><th>수업주차</th><th>가능 일정(수기_AJ열)</th><th>불가능시간(설문 답변)</th><th>특이사항</th><th>형제</th></tr></thead><tbody>';
+        + '<thead><tr><th>#</th><th>CAS</th><th>배정학년</th><th>수업주차</th><th>가능 일정(수기_AJ열)</th><th>불가능시간(설문 답변)</th><th>특이사항</th><th>형제</th></tr></thead><tbody>';
       unassigned.forEach((r, i) => {
         const m = r.member;
         uHtml += `<tr><td>${i+1}</td><td><code>${m.cas}</code></td>`
-          + `<td style="width:70px">${m.level||'-'}</td>`
+          + `<td style="width:70px">${m.level ? m.level+'학년' : '-'}</td>`
           + `<td style="white-space:nowrap;font-size:12px">${firstWeekCell(m)}</td>`
           + `<td style="max-width:150px;font-size:12px">${m.possibleScheduleRaw||'-'}</td>`
           + `<td style="max-width:260px;font-size:12px;white-space:pre-line">${m.unavailDisplay||'-'}</td>`
@@ -2157,7 +2159,7 @@ function downloadExcel() {
     );
 
     const header = [
-      'CAS회원번호','학년','배정학년','수업주차','상품','단과여부', ...(isGenN ? ['코칭주기/배정주차'] : []),
+      'CAS회원번호','학년','배정학년','수업주차','상품', ...(isGenN ? ['코칭주기/배정주차'] : []),
       '가능 시간 조합(현재인원)',
       '탭명','현재탭가능시간대',
       '가능 일정(수기_AJ열)','불가능시간(설문 답변)','특이사항','형제정보'
@@ -2183,7 +2185,7 @@ function downloadExcel() {
       exactFitFlags.push(avSlots.some(isExactFitSlot));
 
       rows.push([
-        m.cas, m.grade, m.level ? m.level + '학년' : '', firstWeekCell(m), productCell(m), singleCourseCell(m),
+        m.cas, m.grade, m.level ? m.level + '학년' : '', firstWeekCell(m), productCell(m),
         ...(isGenN ? [(() => {
           const week = avSlots[0] ? avSlots[0].assignedWeek : null;
           return m.isBiweekly ? `격주(N)${week ? ` / ${week}` : ''}` : '매주';
